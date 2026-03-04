@@ -16,6 +16,8 @@ export interface MountAllowlist {
   blockedPatterns: string[];
   // If true, non-main groups can only mount read-only regardless of config
   nonMainReadOnly: boolean;
+  // Mounts applied to every agent container (must still pass allowedRoots validation)
+  globalMounts?: AdditionalMount[];
 }
 
 export interface AllowedRoot {

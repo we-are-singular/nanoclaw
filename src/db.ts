@@ -353,6 +353,28 @@ export function getMessagesSince(
     .all(chatJid, sinceTimestamp, `${botPrefix}:%`) as NewMessage[];
 }
 
+/**
+ * Get the latest N messages for a chat, ordered oldest-first.
+ * Used by the UI server to display message history.
+ */
+export function getLatestMessages(
+  chatJid: string,
+  limit: number,
+): NewMessage[] {
+  const sql = `
+    SELECT id, chat_jid, sender, sender_name, content, timestamp, is_from_me
+    FROM (
+      SELECT id, chat_jid, sender, sender_name, content, timestamp, is_from_me
+      FROM messages
+      WHERE chat_jid = ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    )
+    ORDER BY timestamp ASC
+  `;
+  return db.prepare(sql).all(chatJid, limit) as NewMessage[];
+}
+
 export function createTask(
   task: Omit<ScheduledTask, 'last_run' | 'last_result'>,
 ): void {

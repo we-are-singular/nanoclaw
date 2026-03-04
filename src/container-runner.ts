@@ -23,7 +23,7 @@ import {
   readonlyMountArgs,
   stopContainer,
 } from './container-runtime.js';
-import { validateAdditionalMounts } from './mount-security.js';
+import { validateAdditionalMounts, getValidatedGlobalMounts } from './mount-security.js';
 import { RegisteredGroup } from './types.js';
 
 // Sentinel markers for robust output parsing (must match agent-runner)
@@ -197,7 +197,10 @@ function buildVolumeMounts(
     readonly: false,
   });
 
-  // Additional mounts validated against external allowlist (tamper-proof from containers)
+  // Global mounts: applied to every agent, validated against allowlist
+  mounts.push(...getValidatedGlobalMounts(isMain));
+
+  // Per-group additional mounts validated against external allowlist (tamper-proof from containers)
   if (group.containerConfig?.additionalMounts) {
     const validatedMounts = validateAdditionalMounts(
       group.containerConfig.additionalMounts,
@@ -220,6 +223,7 @@ function readSecrets(): Record<string, string> {
     'ANTHROPIC_API_KEY',
     'ANTHROPIC_BASE_URL',
     'ANTHROPIC_AUTH_TOKEN',
+    'MODEL_NAME',
   ]);
 }
 

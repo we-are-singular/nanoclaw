@@ -6,6 +6,7 @@ import {
   deleteTask,
   getAllChats,
   getAllRegisteredGroups,
+  getLatestMessages,
   getMessagesSince,
   getNewMessages,
   getTaskById,
@@ -422,5 +423,77 @@ describe('registered group isMain', () => {
     const group = groups['group@g.us'];
     expect(group).toBeDefined();
     expect(group.isMain).toBeUndefined();
+  });
+});
+
+describe('getLatestMessages', () => {
+  it('returns empty array for unknown jid', () => {
+    expect(getLatestMessages('unknown@jid', 10)).toEqual([]);
+  });
+
+  it('returns messages for a jid ordered oldest-first', () => {
+    storeChatMetadata('a@jid', '2024-01-01T00:00:00.000Z');
+    store({
+      id: 'm1',
+      chat_jid: 'a@jid',
+      sender: 's',
+      sender_name: 'S',
+      content: 'first',
+      timestamp: '2024-01-01T00:00:00.000Z',
+    });
+    store({
+      id: 'm2',
+      chat_jid: 'a@jid',
+      sender: 's',
+      sender_name: 'S',
+      content: 'second',
+      timestamp: '2024-01-01T00:01:00.000Z',
+    });
+    store({
+      id: 'm3',
+      chat_jid: 'a@jid',
+      sender: 's',
+      sender_name: 'S',
+      content: 'third',
+      timestamp: '2024-01-01T00:02:00.000Z',
+    });
+
+    const msgs = getLatestMessages('a@jid', 10);
+    expect(msgs).toHaveLength(3);
+    expect(msgs[0].content).toBe('first');
+    expect(msgs[2].content).toBe('third');
+  });
+
+  it('respects the limit, returning the most recent N messages', () => {
+    storeChatMetadata('b@jid', '2024-01-01T00:00:00.000Z');
+    store({
+      id: 'm1',
+      chat_jid: 'b@jid',
+      sender: 's',
+      sender_name: 'S',
+      content: 'old',
+      timestamp: '2024-01-01T00:00:00.000Z',
+    });
+    store({
+      id: 'm2',
+      chat_jid: 'b@jid',
+      sender: 's',
+      sender_name: 'S',
+      content: 'newer',
+      timestamp: '2024-01-01T00:01:00.000Z',
+    });
+    store({
+      id: 'm3',
+      chat_jid: 'b@jid',
+      sender: 's',
+      sender_name: 'S',
+      content: 'newest',
+      timestamp: '2024-01-01T00:02:00.000Z',
+    });
+
+    const msgs = getLatestMessages('b@jid', 2);
+    expect(msgs).toHaveLength(2);
+    expect(msgs[0].content).toBe('newer');
+    expect(msgs[1].content).toBe('newest');
   });
 });

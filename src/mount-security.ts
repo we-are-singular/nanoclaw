@@ -385,6 +385,20 @@ export function validateAdditionalMounts(
 }
 
 /**
+ * Return validated global mounts from the allowlist.
+ * These are applied to every agent container.
+ */
+export function getValidatedGlobalMounts(isMain: boolean): Array<{
+  hostPath: string;
+  containerPath: string;
+  readonly: boolean;
+}> {
+  const allowlist = loadMountAllowlist();
+  if (!allowlist?.globalMounts?.length) return [];
+  return validateAdditionalMounts(allowlist.globalMounts, 'global', isMain);
+}
+
+/**
  * Generate a template allowlist file for users to customize
  */
 export function generateAllowlistTemplate(): string {
@@ -413,6 +427,10 @@ export function generateAllowlistTemplate(): string {
       'token',
     ],
     nonMainReadOnly: true,
+    globalMounts: [
+      // Example: mount a shared notes directory into all agents
+      // { "hostPath": "~/notes", "containerPath": "notes", "readonly": true }
+    ],
   };
 
   return JSON.stringify(template, null, 2);
