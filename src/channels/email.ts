@@ -6,15 +6,13 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import nodemailer from 'nodemailer';
 
-import { GROUPS_DIR, MAIN_GROUP_FOLDER } from '../config.js';
+import { GROUPS_DIR } from '../config.js';
+
+const MAIN_GROUP_FOLDER = 'main';
 import { readEnvFile } from '../env.js';
 import { logger } from '../logger.js';
-import {
-  Channel,
-  OnChatMetadata,
-  OnInboundMessage,
-  RegisteredGroup,
-} from '../types.js';
+import { Channel, RegisteredGroup } from '../types.js';
+import { ChannelOpts, registerChannel } from './registry.js';
 
 // Filename written to each task thread's folder for restart recovery
 const META_FILENAME = 'email-meta.json';
@@ -52,12 +50,8 @@ interface ThreadMeta {
   references: string; // Space-separated chain for In-Reply-To / References headers
 }
 
-export interface EmailChannelOpts {
+export interface EmailChannelOpts extends ChannelOpts {
   config: EmailConfig;
-  onMessage: OnInboundMessage;
-  onChatMetadata: OnChatMetadata;
-  registeredGroups: () => Record<string, RegisteredGroup>;
-  onNewThread: (jid: string, group: RegisteredGroup) => void;
 }
 
 function messageIdToJid(messageId: string): string {
@@ -700,7 +694,7 @@ export class EmailChannel implements Channel {
  *   EMAIL_DELIVERY             (idle | poll; default: idle)
  *   EMAIL_POLL_INTERVAL        (seconds; default: 60)
  */
-export function buildEmailConfigFromEnv(): EmailConfig | null {
+function buildEmailConfigFromEnv(): EmailConfig | null {
   const env = readEnvFile([
     'EMAIL_IMAP_HOST',
     'EMAIL_IMAP_PORT',
@@ -759,3 +753,9 @@ export function buildEmailConfigFromEnv(): EmailConfig | null {
     pollIntervalMs: (isNaN(pollSecs) || pollSecs < 10 ? 60 : pollSecs) * 1000,
   };
 }
+
+registerChannel('email', (opts) => {
+  const config = buildEmailConfigFromEnv();
+  if (!config) return null;
+  return new EmailChannel({ ...opts, config });
+});

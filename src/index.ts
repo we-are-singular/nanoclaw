@@ -5,7 +5,6 @@ import {
   ASSISTANT_NAME,
   IDLE_TIMEOUT,
   POLL_INTERVAL,
-  STORE_DIR,
   TRIGGER_PATTERN,
 } from './config.js';
 import './channels/index.js';
@@ -13,7 +12,6 @@ import {
   getChannelFactory,
   getRegisteredChannelNames,
 } from './channels/registry.js';
-import { EmailChannel, buildEmailConfigFromEnv } from './channels/email.js';
 import {
   ContainerOutput,
   runContainerAgent,
@@ -480,6 +478,7 @@ async function main(): Promise<void> {
       isGroup?: boolean,
     ) => storeChatMetadata(chatJid, timestamp, name, channel, isGroup),
     registeredGroups: () => registeredGroups,
+    onNewThread: registerGroup,
   };
 
   // Create and connect all registered channels.
@@ -497,18 +496,6 @@ async function main(): Promise<void> {
     }
     channels.push(channel);
     await channel.connect();
-  }
-
-  // Email channel (optional — enabled when EMAIL_IMAP_HOST is set in .env)
-  const emailConfig = buildEmailConfigFromEnv();
-  if (emailConfig) {
-    const email = new EmailChannel({
-      config: emailConfig,
-      ...channelOpts,
-      onNewThread: registerGroup,
-    });
-    channels.push(email);
-    await email.connect();
   }
 
   if (channels.length === 0) {
